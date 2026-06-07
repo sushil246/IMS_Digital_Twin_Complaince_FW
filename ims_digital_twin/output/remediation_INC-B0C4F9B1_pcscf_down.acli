@@ -1,0 +1,66 @@
+# ============================================================
+# Oracle Session Border Controller — Generated Configuration
+# Generated: 2026-06-06T20:38:05Z
+# Incident:  INC-B0C4F9B1
+# Scenario:  pcscf_down
+# Node:      sbc01 (sbc01.ims.lab)
+# ============================================================
+# --- FIX: Upstream P-CSCF unreachable — add failover session-agent ---
+
+# Primary session agent (existing, restored)
+session-agent
+    hostname              pcscf01.ims.lab
+    ip-address            10.0.2.10
+    port                  5060
+    transport-method      UDP
+    realm-id              core
+    description           Primary P-CSCF
+    max-sessions          5000
+    weight                10
+    state                 enabled
+    ping-method           OPTIONS
+    ping-interval         10
+    ping-send-mode        keep-alive
+    out-of-service-response-code  503
+    failover-response-codes       503,408,500
+!
+
+# Secondary session agent (NEW — failover target)
+session-agent
+    hostname              pcscf02.ims.lab
+    ip-address            10.0.2.11
+    port                  5060
+    transport-method      UDP
+    realm-id              core
+    description           Secondary P-CSCF (failover)
+    max-sessions          5000
+    weight                5
+    state                 enabled
+    ping-method           OPTIONS
+    ping-interval         10
+    ping-send-mode        keep-alive
+!
+
+# Session group for active/standby failover
+session-group
+    group-name            pcscf-group
+    app-protocol          SIP
+    strategy              hunt
+    dest
+        agent             pcscf01.ims.lab
+        agent             pcscf02.ims.lab
+    !
+!
+
+# Update local-policy to use session group
+local-policy
+    from-address          *
+    to-address            *
+    source-realm          access
+    policy-priority       5
+    policy-attribute
+        next-hop          pcscf-group
+        realm             core
+        action            none
+    !
+!

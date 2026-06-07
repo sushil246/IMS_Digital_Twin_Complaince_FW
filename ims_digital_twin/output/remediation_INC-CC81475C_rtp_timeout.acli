@@ -1,0 +1,32 @@
+# ============================================================
+# Oracle Session Border Controller — Generated Configuration
+# Generated: 2026-06-06T20:36:21Z
+# Incident:  INC-CC81475C
+# Scenario:  rtp_timeout
+# Node:      sbc01 (sbc01.ims.lab)
+# ============================================================
+# --- FIX: RTP media timeout / one-way audio / NAT traversal ---
+
+media-manager
+    media-supervision-timeout  300
+    rtp-inactivity-timer       60
+    rtcp-inactivity-timer      90
+    update-ip-for-sdp-na       enabled
+    nat-traversal              enabled
+    latching                   passive
+!
+
+realm-config
+    id                     access
+    media-policy           default
+    mm-in-realm            enabled
+    mm-in-network          enabled
+    mm-same-ip             enabled
+    msm-release            enabled
+!
+
+# NAT keepalive — send RTCP to keep NAT bindings alive
+media-manager
+    rtp-keepalive-method   RTCP
+    rtp-keepalive-interval 15
+!

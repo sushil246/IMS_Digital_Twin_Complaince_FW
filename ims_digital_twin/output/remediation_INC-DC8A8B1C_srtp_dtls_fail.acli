@@ -1,0 +1,31 @@
+# ============================================================
+# Oracle Session Border Controller — Generated Configuration
+# Generated: 2026-06-07T10:02:34Z
+# Incident:  INC-DC8A8B1C
+# Scenario:  srtp_dtls_fail
+# Node:      sbc01 (sbc01.ims.lab)
+# ============================================================
+# --- FIX: SRTP/DTLS crypto suite mismatch — expand allowed cipher suites ---
+
+media-sec-policy
+    name                  ims-media-sec
+    srtp-enabled          enabled
+    srtp-auth-tag-bits    80
+    srtp-crypto-suite     AES_CM_128_HMAC_SHA1_80 AES_256_CM_HMAC_SHA1_80 AES_256_GCM_SHA384
+    dtls-enabled          enabled
+    dtls-cipher-suite     ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+    dtls-version          DTLSv1.2
+    srtp-key-exchange     dtls-srtp
+!
+
+# Bind to access sip-interface
+sip-interface
+    realm-id              access
+    media-sec-policy      ims-media-sec
+!
+
+# Also bind to core interface
+sip-interface
+    realm-id              core
+    media-sec-policy      ims-media-sec
+!

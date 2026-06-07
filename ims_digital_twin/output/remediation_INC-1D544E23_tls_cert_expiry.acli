@@ -1,0 +1,29 @@
+# ============================================================
+# Oracle Session Border Controller — Generated Configuration
+# Generated: 2026-06-06T19:33:01Z
+# Incident:  INC-1D544E23
+# Scenario:  tls_cert_expiry
+# Node:      sbc01 (sbc01.ims.lab)
+# ============================================================
+# --- FIX: Replace expired TLS certificate ---
+
+# Step 1: Upload new cert via SFTP to /opt/acme/certs/ BEFORE applying below
+
+tls-profile
+    name               ims-tls-prof
+    end-entity-cert    /opt/acme/certs/sbc01_2026_new.pem
+    trusted-ca-certs   /opt/acme/certs/ims-ca-bundle.pem
+    cipher-list        TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384
+    tls-version        TLSv1.3
+    verify-depth       3
+    mutual-auth        disabled
+!
+
+# Enable certificate monitoring (prevent future expiry)
+certificate-monitor
+    name               ims-tls-prof-monitor
+    tls-profile        ims-tls-prof
+    alert-before-days  30
+    critical-days      7
+    syslog-on-expiry   enabled
+!

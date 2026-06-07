@@ -1,0 +1,32 @@
+# ============================================================
+# Oracle Session Border Controller — Generated Configuration
+# Generated: 2026-06-06T20:31:21Z
+# Incident:  INC-A79F86FD
+# Scenario:  reg_storm
+# Node:      sbc01 (sbc01.ims.lab)
+# ============================================================
+# --- FIX: Tighten rate limits and grow registration cache ---
+
+dos-protection
+    trust-level            low
+    phy-interface          access
+    register-max-rate      200
+    invite-max-rate        100
+    register-burst-size    50
+    invite-burst-size      30
+    deny-period            60
+    exception-addresses    10.0.0.0/8 192.168.1.0/24
+!
+
+sip-config
+    registration-max       50000
+    registration-interval  3600
+!
+
+# Apply to access realm
+realm-config
+    id                     access
+    media-policy           default
+    in-trans-filter        reg-rate-limit
+    out-trans-filter       reg-rate-limit
+!
