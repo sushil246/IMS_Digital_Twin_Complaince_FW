@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMS Compliance Auditor — Security Certification Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --sidebar-bg: #1e2330;
+    --sidebar-hover: #2a3040;
+    --sidebar-active: #3b4255;
+    --sidebar-text: #b0b8cc;
+    --sidebar-active-text: #ffffff;
+    --primary: #4f6ef7;
+    --primary-hover: #3a5ce8;
+    --danger: #e53e3e;
+    --warning: #d97706;
+    --success: #16a34a;
+    --partial: #2563eb;
+    --neutral: #6b7280;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --text-muted: #718096;
+    --radius: 8px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 220px; min-width: 220px; background: var(--sidebar-bg); display: flex;
+    flex-direction: column; padding: 0; overflow-y: auto;
+  }
+  .sidebar-header {
+    padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-title { color: #fff; font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+                   text-transform: uppercase; }
+  .sidebar-subtitle { color: var(--sidebar-text); font-size: 11px; margin-top: 3px; }
+  .sidebar-section { padding: 16px 0 8px; }
+  .sidebar-label { padding: 0 18px 6px; color: #6b7588; font-size: 10px;
+                   font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer;
+    color: var(--sidebar-text); font-size: 13px; transition: background 0.15s, color 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar-item:hover { background: var(--sidebar-hover); color: #fff; }
+  .sidebar-item.active { background: var(--sidebar-active); color: var(--sidebar-active-text);
+                          border-left-color: var(--primary); }
+  .sidebar-item .icon { font-size: 15px; width: 18px; text-align: center; }
+  .fw-chip {
+    display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 10px;
+    font-weight: 600; margin-left: auto;
+  }
+  .sidebar-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 0; }
+
+  /* ── Main content ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Topbar ── */
+  #topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 28px; height: 58px; display: flex; align-items: center;
+    justify-content: space-between; flex-shrink: 0;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; transition: background 0.15s, opacity 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: 0.9; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #ai-status { font-size: 12px; padding: 5px 10px; border-radius: 20px;
+               background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+  #ai-status.offline { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
+
+  /* ── Content area ── */
+  #content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+          box-shadow: var(--shadow); }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border);
+                 display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .card-body { padding: 20px; }
+
+  /* ── Overview row ── */
+  .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+                   margin-bottom: 24px; }
+  .kpi-card { background: var(--surface); border-radius: var(--radius);
+              border: 1px solid var(--border); padding: 18px 20px; box-shadow: var(--shadow); }
+  .kpi-label { font-size: 11px; color: var(--text-muted); font-weight: 600;
+               text-transform: uppercase; letter-spacing: 0.06em; }
+  .kpi-value { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); }
+  .kpi-badge { display: inline-block; padding: 3px 8px; border-radius: 10px;
+               font-size: 11px; font-weight: 600; }
+  .badge-red { background: #fef2f2; color: #dc2626; }
+  .badge-orange { background: #fff7ed; color: #c2410c; }
+  .badge-yellow { background: #fefce8; color: #a16207; }
+  .badge-green { background: #f0fdf4; color: #15803d; }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; }
+  .badge-gray { background: #f9fafb; color: #6b7280; }
+
+  /* ── Two-col layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+
+  /* ── Framework selector ── */
+  .fw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .fw-option {
+    border: 2px solid var(--border); border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .fw-option:hover { border-color: var(--primary); background: #f5f7ff; }
+  .fw-option.selected { border-color: var(--primary); background: #eff3ff; }
+  .fw-flag { font-size: 20px; }
+  .fw-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .fw-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+
+  /* ── Scenario selector ── */
+  .scenario-list { display: flex; flex-direction: column; gap: 8px; }
+  .scenario-item {
+    border: 2px solid var(--border); border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .scenario-item:hover { border-color: var(--primary); background: #f5f7ff; }
+  .scenario-item.selected { border-color: var(--danger); background: #fff5f5; }
+  .scenario-name { font-size: 13px; font-weight: 600; }
+  .scenario-desc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .scenario-fw-tags { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+  .scenario-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px;
+                  background: #eff3ff; color: var(--primary); font-weight: 600; }
+
+  /* ── Findings table ── */
+  .findings-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .findings-table th {
+    text-align: left; padding: 10px 12px; background: var(--bg); color: var(--text-muted);
+    font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .findings-table td { padding: 10px 12px; border-bottom: 1px solid #f1f3f7; }
+  .findings-table tr:last-child td { border-bottom: none; }
+  .findings-table tr:hover td { background: #fafbfc; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
+    border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .status-compliant { background: #f0fdf4; color: #15803d; }
+  .status-non_compliant { background: #fef2f2; color: #dc2626; }
+  .status-partial { background: #eff6ff; color: #1d4ed8; }
+  .status-na { background: #f9fafb; color: #6b7280; }
+  .sev-critical { color: #dc2626; font-weight: 700; }
+  .sev-high { color: #c2410c; font-weight: 600; }
+  .sev-medium { color: #a16207; font-weight: 600; }
+  .sev-low { color: #15803d; }
+
+  /* ── Log viewer ── */
+  .log-box {
+    background: #0d1117; color: #c9d1d9; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px; border-radius: var(--radius); padding: 14px 16px;
+    max-height: 280px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap;
+    border: 1px solid #21262d;
+  }
+  .log-error { color: #ff7b72; }
+  .log-warn { color: #e3b341; }
+  .log-info { color: #79c0ff; }
+  .log-critical { color: #ff6b6b; font-weight: 700; }
+
+  /* ── AI output ── */
+  .ai-box {
+    background: #0d1117; color: #c9d1d9; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px; border-radius: var(--radius); padding: 14px 16px;
+    max-height: 400px; overflow-y: auto; line-height: 1.7; white-space: pre-wrap;
+    border: 1px solid #21262d;
+  }
+  .ai-thinking { color: #8b949e; font-style: italic; border-left: 2px solid #30363d;
+                 padding-left: 10px; margin-bottom: 8px; }
+  .ai-answer { color: #c9d1d9; }
+  .ai-cfg { color: #7ee787; }
+
+  /* ── Score bars ── */
+  .score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .score-label { font-size: 12px; font-weight: 600; width: 90px; color: var(--text); }
+  .score-bar-bg { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .score-value { font-size: 12px; font-weight: 700; width: 45px; text-align: right; }
+  .risk-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; width: 70px;
+              text-align: center; }
+  .risk-low { background: #f0fdf4; color: #15803d; }
+  .risk-medium { background: #fefce8; color: #a16207; }
+  .risk-high { background: #fff7ed; color: #c2410c; }
+  .risk-critical { background: #fef2f2; color: #dc2626; }
+
+  /* ── Compliance verdict banner ── */
+  #verdict-banner {
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
+    display: none; border: 1px solid;
+  }
+  .verdict-compliant { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+  .verdict-partial { background: #fefce8; border-color: #fde68a; color: #92400e; }
+  .verdict-noncompliant { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+  .verdict-title { font-size: 14px; font-weight: 700; }
+  .verdict-sub { font-size: 12px; margin-top: 4px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .tab { padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+         color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Remediate button ── */
+  .remediate-btn {
+    font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--primary); background: transparent; color: var(--primary);
+    font-weight: 600; transition: all 0.15s;
+  }
+  .remediate-btn:hover { background: var(--primary); color: #fff; }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SIP trace ── */
+  .sip-box {
+    background: #0d1117; color: #79c0ff; font-family: monospace; font-size: 11px;
+    border-radius: var(--radius); padding: 12px 14px; max-height: 200px; overflow-y: auto;
+    border: 1px solid #21262d; white-space: pre;
+  }
+  .cfg-box {
+    background: #0d1117; color: #7ee787; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; border-radius: var(--radius); padding: 12px 14px;
+    max-height: 300px; overflow-y: auto; border: 1px solid #21262d; white-space: pre;
+  }
+
+  /* ── Notification toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; padding: 12px 18px;
+    border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-md); transition: opacity 0.3s; z-index: 1000;
+    background: #1e2330; color: #fff; display: none;
+  }
+
+  /* ── Quick links ── */
+  .quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .quick-link {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text);
+    transition: all 0.15s; text-decoration: none;
+  }
+  .quick-link:hover { border-color: var(--primary); color: var(--primary); background: #f5f7ff; }
+
+  /* ── Help section ── */
+  .help-framework-card {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 18px;
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  .help-fw-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .help-fw-icon { font-size: 28px; }
+  .help-fw-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .help-fw-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .help-fw-desc { font-size: 12px; color: var(--text-muted); margin: 10px 0; line-height: 1.5; }
+  .help-controls-list { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .help-control-item {
+    font-size: 11px; padding: 6px 0; color: var(--text); display: flex; gap: 8px;
+    align-items: flex-start;
+  }
+  .help-control-badge { 
+    font-weight: 600; color: var(--primary); white-space: nowrap;
+    background: #eff3ff; padding: 2px 6px; border-radius: 4px; font-size: 10px;
+  }
+  .help-scenario-item {
+    background: var(--bg); border-radius: var(--radius); padding: 14px;
+    margin-bottom: 12px; border-left: 3px solid var(--primary);
+  }
+  .help-scenario-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .help-scenario-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .help-scenario-fws { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .help-fw-tag {
+    font-size: 10px; padding: 3px 8px; border-radius: 10px;
+    background: #eff3ff; color: var(--primary); font-weight: 600;
+  }
+
+  /* ── Injection detail modal ── */
+  #injection-modal {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 999; align-items: center;
+    justify-content: center; flex-direction: column;
+  }
+  #injection-modal.active { display: flex; }
+  .injection-modal-content {
+    background: var(--surface); border-radius: var(--radius); max-height: 90vh;
+    max-width: 900px; width: 90%; overflow-y: auto; box-shadow: var(--shadow-md);
+  }
+  .injection-modal-header {
+    padding: 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .injection-modal-title { font-size: 16px; font-weight: 700; }
+  .injection-modal-close {
+    cursor: pointer; font-size: 18px; color: var(--text-muted);
+    transition: color 0.15s;
+  }
+  .injection-modal-close:hover { color: var(--text); }
+  .injection-modal-body { padding: 24px; }
+  .injection-section { margin-bottom: 20px; }
+  .injection-section-title { font-size: 13px; font-weight: 700; color: var(--text);
+                             margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .injection-section-content { background: #f9fafb; border-radius: 6px; padding: 12px;
+                               font-size: 12px; color: var(--text); line-height: 1.6; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  /* responsive */
+  @media (max-width: 1100px) {
+    .overview-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .fw-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">IMS Compliance</div>
+    <div class="sidebar-subtitle">Security Certification Auditor</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Navigation</div>
+    <div class="sidebar-item active" data-view="dashboard" onclick="switchView('dashboard', this)">
+      <span class="icon">⊞</span> Dashboard
+    </div>
+    <div class="sidebar-item" data-view="audit" onclick="switchView('audit', this)">
+      <span class="icon">🔍</span> Run Audit
+    </div>
+    <div class="sidebar-item" data-view="findings" onclick="switchView('findings', this)">
+      <span class="icon">📋</span> Findings
+      <span class="fw-chip badge-red" id="findings-badge">0</span>
+    </div>
+    <div class="sidebar-item" data-view="ai" onclick="switchView('ai', this)">
+      <span class="icon">🤖</span> AI Remediation
+    </div>
+    <div class="sidebar-item" data-view="logs" onclick="switchView('logs', this)">
+      <span class="icon">📝</span> Live Logs
+    </div>
+    <div class="sidebar-item" data-view="help" onclick="switchView('help', this)">
+      <span class="icon">❓</span> Help & Frameworks
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Frameworks</div>
+    <div class="sidebar-item" id="fw-uk_tsa" onclick="filterByFramework('uk_tsa', this)">
+      <span class="icon">🇬🇧</span> UK TSA
+    </div>
+    <div class="sidebar-item" id="fw-eu_ai_act" onclick="filterByFramework('eu_ai_act', this)">
+      <span class="icon">🇪🇺</span> EU AI Act
+    </div>
+    <div class="sidebar-item" id="fw-iso_42001" onclick="filterByFramework('iso_42001', this)">
+      <span class="icon">🌐</span> ISO 42001
+    </div>
+    <div class="sidebar-item" id="fw-nist_ai_rmf" onclick="filterByFramework('nist_ai_rmf', this)">
+      <span class="icon">🇺🇸</span> NIST AI RMF
+    </div>
+    <div class="sidebar-item" id="fw-mit_ai_risk" onclick="filterByFramework('mit_ai_risk', this)">
+      <span class="icon">🎓</span> MIT AI Risk
+    </div>
+    <div class="sidebar-item" id="fw-oecd_ai" onclick="filterByFramework('oecd_ai', this)">
+      <span class="icon">🌍</span> OECD AI
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">System</div>
+    <div class="sidebar-item" onclick="resetAll()">
+      <span class="icon">↺</span> Reset
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div id="main">
+  <!-- Topbar -->
+  <div id="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Compliance Dashboard</div>
+      <div class="topbar-sub" id="topbar-sub">Select frameworks and inject a compliance failure to begin</div>
+    </div>
+    <div class="topbar-actions">
+      <div id="ai-status" class="offline">⚫ AI Offline</div>
+      <button class="btn btn-primary" onclick="switchView('audit', null)">▶ Run Audit</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+
+    <!-- ══ DASHBOARD VIEW ══ -->
+    <div id="view-dashboard" class="tab-panel active">
+      <div id="verdict-banner"></div>
+
+      <div class="overview-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Overall Score</div>
+          <div class="kpi-value" id="kpi-score" style="color: var(--text-muted);">—</div>
+          <div class="kpi-sub">Compliance percentage</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Open Findings</div>
+          <div class="kpi-value" id="kpi-open" style="color: var(--danger);">0</div>
+          <div class="kpi-sub">Non-compliant controls</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Critical Gaps</div>
+          <div class="kpi-value" id="kpi-critical" style="color: var(--danger);">0</div>
+          <div class="kpi-sub">Require immediate action</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Frameworks</div>
+          <div class="kpi-value" id="kpi-frameworks" style="color: var(--primary);">6</div>
+          <div class="kpi-sub">Available for audit</div>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <div class="card-title">Quick Links</div>
+        </div>
+        <div class="card-body">
+          <div class="quick-links">
+            <div class="quick-link" onclick="switchView('audit', null)">
+              ▶ Run Compliance Audit
+            </div>
+            <div class="quick-link" onclick="switchView('findings', null)">
+              📋 View Findings
+            </div>
+            <div class="quick-link" onclick="switchView('ai', null)">
+              🤖 AI Remediation
+            </div>
+            <div class="quick-link" onclick="switchView('logs', null)">
+              📝 Kamailio Logs
+            </div>
+            <div class="quick-link" id="ql-export" onclick="exportReport()">
+              ⬇ Export Report (JSON)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Framework scores chart + bar -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Compliance by Framework</div>
+          </div>
+          <div class="card-body">
+            <canvas id="framework-chart" height="200"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Risk Score by Framework</div>
+          </div>
+          <div class="card-body" id="score-bars">
+            <div style="color: var(--text-muted); font-size: 12px;">Run an audit to see scores</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incident info -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Current Incident</div>
+          <span class="fw-chip badge-gray" id="incident-phase">IDLE</span>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;font-size:12px;">
+            <div><div style="color:var(--text-muted);margin-bottom:4px;">Incident ID</div>
+              <div id="inc-id" style="font-weight:600;font-family:monospace;">—</div></div>
+            <div><div style="color:var(--text-muted);margin-bottom:4px;">Scenario</div>
+              <div id="inc-scenario" style="font-weight:600;">—</div></div>
+            <div><div style="color:var(--text-muted);margin-bottom:4px;">Frameworks</div>
+              <div id="inc-frameworks" style="font-weight:600;">—</div></div>
+            <div><div style="color:var(--text-muted);margin-bottom:4px;">Log Lines</div>
+              <div id="inc-logs" style="font-weight:600;">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AUDIT VIEW ══ -->
+    <div id="view-audit" class="tab-panel">
+      <div class="two-col">
+        <!-- Framework selector -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">1. Select Compliance Frameworks</div>
+            <button class="btn btn-ghost" onclick="selectAllFrameworks()" style="font-size:11px;padding:4px 10px;">Select All</button>
+          </div>
+          <div class="card-body">
+            <div class="fw-grid" id="fw-selector"></div>
+          </div>
+        </div>
+
+        <!-- Scenario selector -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">2. Select Fault Scenario</div>
+          </div>
+          <div class="card-body">
+            <div class="scenario-list" id="scenario-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="card" style="margin-bottom: 0;">
+        <div class="card-body" style="display:flex;gap:12px;align-items:center;padding:16px 20px;">
+          <button class="btn btn-danger" id="btn-inject" onclick="injectScenario()" disabled>
+            ⚡ Inject Fault &amp; Run Audit
+          </button>
+          <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+          <div id="audit-status" style="font-size:12px;color:var(--text-muted);margin-left:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ FINDINGS VIEW ══ -->
+    <div id="view-findings" class="tab-panel">
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <div class="card-title">Compliance Findings</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="filter-framework" onchange="renderFindings()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);">
+              <option value="">All Frameworks</option>
+            </select>
+            <select id="filter-status" onchange="renderFindings()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);">
+              <option value="">All Statuses</option>
+              <option value="NON_COMPLIANT">Non-Compliant</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="COMPLIANT">Compliant</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="findings-container">
+            <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">
+              Run an audit to see compliance findings
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AI REMEDIATION VIEW ══ -->
+    <div id="view-ai" class="tab-panel">
+      <div class="two-col" style="margin-bottom:0;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🤖 Gemma 4:e4b — Thinking Mode</div>
+            <button class="btn btn-primary" id="btn-analyze" onclick="runAiAnalysis()">
+              Analyze &amp; Remediate
+            </button>
+          </div>
+          <div class="card-body" style="padding: 12px 16px;">
+            <div class="tabs">
+              <div class="tab active" onclick="switchAiTab('thinking', this)">💭 Thinking</div>
+              <div class="tab" onclick="switchAiTab('answer', this)">✅ Remediation</div>
+              <div class="tab" onclick="switchAiTab('config', this)">⚙ Kamailio Config</div>
+            </div>
+            <div id="ai-tab-thinking" class="tab-panel active">
+              <div class="ai-box ai-thinking" id="ai-thinking-box">
+                Gemma 4 thinking block will appear here when analysis runs...
+              </div>
+            </div>
+            <div id="ai-tab-answer" class="tab-panel">
+              <div class="ai-box ai-answer" id="ai-answer-box">
+                AI remediation analysis will appear here...
+              </div>
+            </div>
+            <div id="ai-tab-config" class="tab-panel">
+              <div class="cfg-box" id="ai-config-box">
+                # Generated kamailio.cfg fixes will appear here
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Remediation Results</div>
+          </div>
+          <div class="card-body" id="remediation-results">
+            <div style="color:var(--text-muted);font-size:12px;">No remediations applied yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LOGS VIEW ══ -->
+    <div id="view-logs" class="tab-panel">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Kamailio SIP Logs</div>
+            <span id="log-count" class="fw-chip badge-gray">0 lines</span>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            <div class="log-box" id="log-viewer">No logs yet. Inject a fault scenario to see Kamailio logs.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">SIP Trace / Protocol Evidence</div>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            <div class="sip-box" id="sip-trace-box">No SIP trace available</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Kamailio Configuration Issue</div>
+        </div>
+        <div class="card-body" style="padding:12px;">
+          <div class="cfg-box" id="cfg-issue-box"># No configuration issue identified yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HELP VIEW ══ -->
+    <div id="view-help" class="tab-panel">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <div class="card-title">IMS Compliance Framework Reference</div>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 13px; color: var(--text); margin-bottom: 16px; line-height: 1.6;">
+            This dashboard audits your IMS (IP Multimedia Subsystem) Kamailio SIP infrastructure against <strong>6 major compliance frameworks</strong>. 
+            Each framework focuses on specific aspects of AI governance, telecom security, and regulatory compliance. 
+            Below is a complete reference of all frameworks, their control areas, and the specific security concerns they address.
+          </p>
+        </div>
+      </div>
+
+      <div id="help-frameworks-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+        <!-- Frameworks will be populated here by JavaScript -->
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Compliance Scenarios</div>
+        </div>
+        <div class="card-body">
+          <div id="help-scenarios-container">
+            <!-- Scenarios will be populated here by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<!-- ── Injection Details Modal ── -->
+<div id="injection-modal">
+  <div class="injection-modal-content">
+    <div class="injection-modal-header">
+      <div class="injection-modal-title" id="injection-modal-title">Injection Details</div>
+      <div class="injection-modal-close" onclick="closeInjectionModal()">✕</div>
+    </div>
+    <div class="injection-modal-body">
+      <div class="injection-section">
+        <div class="injection-section-title">Scenario Details</div>
+        <div class="injection-section-content">
+          <div><strong id="inj-scenario-name"></strong></div>
+          <div id="inj-scenario-desc" style="margin-top: 8px; color: var(--text-muted);"></div>
+        </div>
+      </div>
+      
+      <div class="injection-section">
+        <div class="injection-section-title">Frameworks Under Test</div>
+        <div class="injection-section-content" id="inj-frameworks-list"></div>
+      </div>
+
+      <div class="injection-section">
+        <div class="injection-section-title">SIP Trace / Protocol Evidence</div>
+        <div class="sip-box" id="inj-sip-trace"></div>
+      </div>
+
+      <div class="injection-section">
+        <div class="injection-section-title">Kamailio Configuration Issue</div>
+        <div class="cfg-box" id="inj-cfg-issue"></div>
+      </div>
+
+      <div class="injection-section">
+        <div class="injection-section-title">Log Sample (Last 10 Lines)</div>
+        <div class="log-box" id="inj-logs-sample"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const STATE = {
+  frameworks: [],
+  scenarios: [],
+  selectedFrameworks: new Set(),
+  selectedScenario: null,
+  auditReport: null,
+  phase: 'idle',
+  incidentId: null,
+  logs: [],
+  sipTrace: '',
+  cfgIssue: '',
+  filterFramework: '',
+};
+
+let chartInstance = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadFrameworks();
+  await loadScenarios();
+  checkAiHealth();
+  setInterval(checkAiHealth, 30000);
+});
+
+async function loadFrameworks() {
+  try {
+    const r = await fetch('/api/frameworks');
+    const d = await r.json();
+    STATE.frameworks = d.frameworks;
+    renderFrameworkSelector();
+    renderFilterDropdowns();
+    renderHelpFrameworks();
+  } catch(e) { console.error(e); }
+}
+
+async function loadScenarios() {
+  try {
+    const r = await fetch('/api/scenarios');
+    const d = await r.json();
+    STATE.scenarios = d.scenarios;
+    renderScenarioList();
+    renderHelpScenarios();
+  } catch(e) { console.error(e); }
+}
+
+async function checkAiHealth() {
+  try {
+    const r = await fetch('/api/ai/health');
+    const d = await r.json();
+    const el = document.getElementById('ai-status');
+    if (d.ok) {
+      el.textContent = `🟢 Gemma 4:e4b Online`;
+      el.className = '';
+    } else {
+      el.textContent = `⚫ AI Offline`;
+      el.className = 'offline';
+    }
+  } catch(e) {
+    document.getElementById('ai-status').textContent = '⚫ AI Offline';
+    document.getElementById('ai-status').className = 'offline';
+  }
+}
+
+// ── View switching ─────────────────────────────────────────────────────────
+function switchView(view, clickedEl) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.querySelectorAll('.sidebar-item[data-view]').forEach(el => el.classList.remove('active'));
+  const target = clickedEl || document.querySelector(`[data-view="${view}"]`);
+  if (target) target.classList.add('active');
+  const titles = {
+    dashboard: ['Compliance Dashboard', 'Overview of your IMS security certification posture'],
+    audit: ['Run Compliance Audit', 'Select frameworks and inject a fault scenario'],
+    findings: ['Compliance Findings', 'Detailed control evaluation results'],
+    ai: ['AI Remediation', 'Gemma 4:e4b thinking mode — automated Kamailio fixes'],
+    logs: ['Live Kamailio Logs', 'SIP traces and configuration evidence'],
+    help: ['Help & Framework Reference', 'Comprehensive guide to all compliance frameworks and controls'],
+  };
+  if (titles[view]) {
+    document.getElementById('topbar-title').textContent = titles[view][0];
+    document.getElementById('topbar-sub').textContent = titles[view][1];
+  }
+}
+
+function switchAiTab(tab, el) {
+  document.querySelectorAll('#view-ai .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#view-ai .tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`ai-tab-${tab}`).classList.add('active');
+}
+
+function filterByFramework(fk, el) {
+  STATE.filterFramework = fk;
+  document.querySelectorAll('.sidebar-item[id^="fw-"]').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('filter-framework').value = fk;
+  switchView('findings', null);
+  renderFindings();
+}
+
+// ── Framework selector ─────────────────────────────────────────────────────
+function renderFrameworkSelector() {
+  const container = document.getElementById('fw-selector');
+  container.innerHTML = STATE.frameworks.map(fw => `
+    <div class="fw-option" id="fwopt-${fw.key}" onclick="toggleFramework('${fw.key}')">
+      <div class="fw-flag">${fw.icon}</div>
+      <div>
+        <div class="fw-name">${fw.name}</div>
+        <div class="fw-desc">${fw.description.substring(0,80)}...</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleFramework(key) {
+  const el = document.getElementById(`fwopt-${key}`);
+  if (STATE.selectedFrameworks.has(key)) {
+    STATE.selectedFrameworks.delete(key);
+    el.classList.remove('selected');
+  } else {
+    STATE.selectedFrameworks.add(key);
+    el.classList.add('selected');
+  }
+  updateInjectButton();
+}
+
+function selectAllFrameworks() {
+  STATE.frameworks.forEach(fw => {
+    STATE.selectedFrameworks.add(fw.key);
+    const el = document.getElementById(`fwopt-${fw.key}`);
+    if (el) el.classList.add('selected');
+  });
+  updateInjectButton();
+}
+
+// ── Scenario list ──────────────────────────────────────────────────────────
+function renderScenarioList() {
+  const container = document.getElementById('scenario-list');
+  container.innerHTML = STATE.scenarios.map(s => `
+    <div class="scenario-item" id="scen-${s.key}" onclick="selectScenario('${s.key}')">
+      <div class="scenario-name">${s.name}</div>
+      <div class="scenario-desc">${s.description.substring(0, 110)}...</div>
+      <div class="scenario-fw-tags">
+        ${s.frameworks.map(f => `<span class="scenario-tag">${f}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectScenario(key) {
+  document.querySelectorAll('.scenario-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`scen-${key}`).classList.add('selected');
+  STATE.selectedScenario = key;
+  updateInjectButton();
+}
+
+function updateInjectButton() {
+  const btn = document.getElementById('btn-inject');
+  btn.disabled = STATE.selectedFrameworks.size === 0 || !STATE.selectedScenario;
+}
+
+// ── Injection Modal ────────────────────────────────────────────────────────────
+function showInjectionModal(injectionData) {
+  const modal = document.getElementById('injection-modal');
+  document.getElementById('inj-scenario-name').textContent = injectionData.scenario_name || injectionData.scenario_key;
+  document.getElementById('inj-scenario-desc').textContent = injectionData.scenario_description;
+  
+  const fwsList = injectionData.scenario_frameworks || injectionData.frameworks;
+  document.getElementById('inj-frameworks-list').innerHTML = 
+    fwsList.map(f => {
+      const fw = STATE.frameworks.find(fw => fw.key === f);
+      return fw ? `<div style="margin-bottom:6px;"><strong>${fw.icon} ${fw.name}</strong> — ${fw.description.substring(0,60)}...</div>` : '';
+    }).join('');
+  
+  const details = injectionData.injection_details || {};
+  document.getElementById('inj-sip-trace').textContent = details.sip_trace || 'No SIP trace available';
+  document.getElementById('inj-cfg-issue').textContent = details.kamailio_cfg_issue || '# No configuration issue identified';
+  document.getElementById('inj-logs-sample').textContent = details.logs_sample || 'No logs available';
+  
+  modal.classList.add('active');
+}
+
+function closeInjectionModal() {
+  document.getElementById('injection-modal').classList.remove('active');
+}
+
+// ── Audit pipeline ─────────────────────────────────────────────────────────
+async function injectScenario() {
+  const btn = document.getElementById('btn-inject');
+  const status = document.getElementById('audit-status');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Running...';
+  status.textContent = 'Injecting fault scenario...';
+
+  try {
+    // Step 1: Inject
+    const injectResp = await fetch('/api/inject', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        scenario_key: STATE.selectedScenario,
+        framework_keys: [...STATE.selectedFrameworks],
+      }),
+    });
+    const injectData = await injectResp.json();
+    if (!injectData.ok) throw new Error(injectData.detail || 'Injection failed');
+
+    STATE.incidentId = injectData.incident_id;
+    status.textContent = `Fault injected — Incident ${injectData.incident_id}. Evaluating...`;
+
+    // Show injection details modal
+    showInjectionModal(injectData);
+
+    // Step 2: Evaluate
+    const evalResp = await fetch('/api/evaluate', { method: 'POST' });
+    const evalData = await evalResp.json();
+    if (!evalData.ok) throw new Error('Evaluation failed');
+
+    STATE.auditReport = evalData.report;
+    STATE.phase = 'evaluated';
+
+    // Fetch full state
+    await refreshState();
+
+    // Update UI
+    renderDashboard();
+    renderFindings();
+    document.getElementById('findings-badge').textContent =
+      evalData.report.summary.non_compliant;
+    status.textContent = `✓ Audit complete — ${evalData.report.summary.non_compliant} non-compliant controls`;
+
+    showToast(`Audit complete: ${evalData.report.summary.non_compliant} findings`);
+    switchView('dashboard', null);
+
+  } catch(e) {
+    status.textContent = `Error: ${e.message}`;
+    showToast(`Error: ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Inject Fault &amp; Run Audit';
+  }
+}
+
+async function refreshState() {
+  try {
+    const r = await fetch('/api/state');
+    const d = await r.json();
+    STATE.logs = d.logs || [];
+    STATE.sipTrace = d.sip_trace || '';
+    STATE.cfgIssue = d.kamailio_cfg_issue || '';
+    STATE.phase = d.phase;
+    STATE.incidentId = d.incident_id;
+    renderLogs();
+  } catch(e) {}
+}
+
+// ── Dashboard rendering ────────────────────────────────────────────────────
+function renderDashboard() {
+  const report = STATE.auditReport;
+  if (!report) return;
+
+  const scores = report.framework_scores || {};
+  const summary = report.summary || {};
+
+  // KPIs
+  const score = report.overall_score;
+  const kpiScore = document.getElementById('kpi-score');
+  kpiScore.textContent = `${score}%`;
+  kpiScore.style.color = score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
+  document.getElementById('kpi-open').textContent = summary.non_compliant || 0;
+  document.getElementById('kpi-critical').textContent = summary.critical_findings || 0;
+  document.getElementById('kpi-frameworks').textContent = Object.keys(scores).length;
+
+  // Incident info
+  document.getElementById('inc-id').textContent = STATE.incidentId || '—';
+  document.getElementById('inc-scenario').textContent = STATE.selectedScenario || '—';
+  document.getElementById('inc-frameworks').textContent = [...STATE.selectedFrameworks].join(', ');
+  document.getElementById('inc-logs').textContent = STATE.logs.length;
+  document.getElementById('incident-phase').textContent = STATE.phase.toUpperCase();
+
+  // Verdict banner
+  const banner = document.getElementById('verdict-banner');
+  banner.style.display = 'block';
+  const nc = summary.non_compliant || 0;
+  const critical = summary.critical_findings || 0;
+  if (nc === 0) {
+    banner.className = 'verdict-compliant';
+    banner.innerHTML = `<div class="verdict-title">✅ COMPLIANT — All controls passed</div>
+      <div class="verdict-sub">All ${summary.total_controls} controls evaluated as compliant across selected frameworks.</div>`;
+  } else if (critical > 0) {
+    banner.className = 'verdict-noncompliant';
+    banner.innerHTML = `<div class="verdict-title">❌ NON-COMPLIANT — ${critical} critical finding${critical>1?'s':''}</div>
+      <div class="verdict-sub">${nc} control${nc>1?'s':''} failed. ${critical} critical finding${critical>1?'s':''} require immediate remediation.</div>`;
+  } else {
+    banner.className = 'verdict-partial';
+    banner.innerHTML = `<div class="verdict-title">⚠️ PARTIALLY COMPLIANT — ${nc} finding${nc>1?'s':''}</div>
+      <div class="verdict-sub">${nc} control${nc>1?'s':''} require attention. No critical findings.</div>`;
+  }
+
+  // Score bars
+  const barsEl = document.getElementById('score-bars');
+  barsEl.innerHTML = Object.entries(scores).map(([key, s]) => {
+    const color = s.score_pct >= 80 ? '#16a34a' : s.score_pct >= 50 ? '#d97706' : '#e53e3e';
+    const riskClass = `risk-${s.risk_level.toLowerCase()}`;
+    return `<div class="score-row">
+      <div class="score-label">${s.name}</div>
+      <div class="score-bar-bg"><div class="score-bar-fill" style="width:${s.score_pct}%;background:${color};"></div></div>
+      <div class="score-value" style="color:${color};">${s.score_pct}%</div>
+      <div class="risk-tag ${riskClass}">${s.risk_level}</div>
+    </div>`;
+  }).join('');
+
+  // Chart
+  renderFrameworkChart(scores);
+}
+
+function renderFrameworkChart(scores) {
+  const ctx = document.getElementById('framework-chart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  const labels = Object.values(scores).map(s => s.name);
+  const data = Object.values(scores).map(s => s.score_pct);
+  const colors = data.map(v => v >= 80 ? '#16a34a' : v >= 50 ? '#d97706' : '#e53e3e');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Compliance %',
+        data,
+        backgroundColor: colors.map(c => c + '33'),
+        borderColor: colors,
+        borderWidth: 2,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } } },
+        x: { ticks: { font: { size: 11 } } },
+      },
+    },
+  });
+}
+
+// ── Findings rendering ─────────────────────────────────────────────────────
+function renderFilterDropdowns() {
+  const sel = document.getElementById('filter-framework');
+  sel.innerHTML = '<option value="">All Frameworks</option>' +
+    STATE.frameworks.map(fw => `<option value="${fw.key}">${fw.name}</option>`).join('');
+}
+
+// ── Help section rendering ─────────────────────────────────────────────────────
+function renderHelpFrameworks() {
+  const container = document.getElementById('help-frameworks-container');
+  container.innerHTML = STATE.frameworks.map(fw => `
+    <div class="help-framework-card">
+      <div class="help-fw-header">
+        <div class="help-fw-icon">${fw.icon}</div>
+        <div>
+          <div class="help-fw-title">${fw.name}</div>
+          <div class="help-fw-subtitle">${fw.full_name}</div>
+          <div class="help-fw-subtitle" style="margin-top:4px;color:var(--text-muted);">${fw.jurisdiction}</div>
+        </div>
+      </div>
+      <div class="help-fw-desc">${fw.description}</div>
+      <div class="help-controls-list">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">CONTROLS (${fw.control_count})</div>
+        ${fw.controls.map(c => `
+          <div class="help-control-item">
+            <span class="help-control-badge">${c.id}</span>
+            <div>
+              <div style="font-weight:600;color:var(--text);">${c.name}</div>
+              <div style="color:var(--text-muted);margin-top:2px;">${c.description.substring(0,80)}...</div>
+              <div style="color:var(--text-muted);font-size:10px;margin-top:4px;">
+                ${c.category} • ${c.telecom_vector}
+                ${c.kamailio_module ? ` • <strong>${c.kamailio_module}</strong>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHelpScenarios() {
+  const container = document.getElementById('help-scenarios-container');
+  container.innerHTML = STATE.scenarios.map(s => `
+    <div class="help-scenario-item">
+      <div class="help-scenario-name">${s.name}</div>
+      <div class="help-scenario-desc">${s.description}</div>
+      <div class="help-scenario-fws">
+        ${s.frameworks.map(f => `<span class="help-fw-tag">${f}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFindings() {
+  const report = STATE.auditReport;
+  const container = document.getElementById('findings-container');
+  if (!report || !report.findings || report.findings.length === 0) {
+    container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">Run an audit to see compliance findings</div>';
+    return;
+  }
+
+  const fwFilter = document.getElementById('filter-framework').value;
+  const statusFilter = document.getElementById('filter-status').value;
+
+  let findings = report.findings;
+  if (fwFilter) findings = findings.filter(f => f.framework === fwFilter);
+  if (statusFilter) findings = findings.filter(f => f.status === statusFilter);
+
+  const statusBadge = (s) => {
+    const map = {
+      COMPLIANT: 'status-compliant', NON_COMPLIANT: 'status-non_compliant',
+      PARTIAL: 'status-partial', 'N/A': 'status-na',
+    };
+    const icons = { COMPLIANT: '✓', NON_COMPLIANT: '✗', PARTIAL: '~', 'N/A': '—' };
+    return `<span class="status-pill ${map[s] || 'status-na'}">${icons[s]||''} ${s.replace('_',' ')}</span>`;
+  };
+  const sevClass = (s) => `sev-${s.toLowerCase()}`;
+  const remBtn = (f) => f.status === 'NON_COMPLIANT'
+    ? `<button class="remediate-btn" onclick="remediateControl('${f.control_id}')">🤖 Fix</button>`
+    : '';
+
+  container.innerHTML = `
+    <table class="findings-table">
+      <thead><tr>
+        <th>Control ID</th><th>Framework</th><th>Control Name</th>
+        <th>Status</th><th>Severity</th><th>Category</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+        ${findings.map(f => `
+          <tr>
+            <td><code style="font-size:11px;">${f.control_id}</code></td>
+            <td><span style="font-size:11px;">${f.framework}</span></td>
+            <td title="${f.telecom_vector}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.control_name}</td>
+            <td>${statusBadge(f.status)}</td>
+            <td><span class="${sevClass(f.severity)}">${f.severity}</span></td>
+            <td>${f.category}</td>
+            <td>${remBtn(f)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ── AI Remediation ─────────────────────────────────────────────────────────
+function remediateControl(controlId) {
+  switchView('ai', null);
+  const thinkBox = document.getElementById('ai-thinking-box');
+  const answerBox = document.getElementById('ai-answer-box');
+  const cfgBox = document.getElementById('ai-config-box');
+  thinkBox.textContent = `🔄 Remediating ${controlId} with Gemma 4:e4b...`;
+  answerBox.textContent = '';
+  cfgBox.textContent = '';
+
+  const es = new EventSource(`/api/ai/remediate/${controlId}`);
+  let thinkingDone = false;
+  let answerText = '';
+  let cfgText = '';
+
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.done) { es.close(); return; }
+    const token = data.token || '';
+    answerText += token;
+    answerBox.textContent = answerText;
+    answerBox.scrollTop = answerBox.scrollHeight;
+    // Extract cfg blocks
+    const cfgMatch = answerText.match(/```(?:kamailio|cfg|conf)?\n([\s\S]*?)```/);
+    if (cfgMatch) cfgBox.textContent = cfgMatch[1];
+  };
+  es.onerror = () => es.close();
+}
+
+async function runAiAnalysis() {
+  const btn = document.getElementById('btn-analyze');
+  const thinkBox = document.getElementById('ai-thinking-box');
+  const answerBox = document.getElementById('ai-answer-box');
+  const cfgBox = document.getElementById('ai-config-box');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+  thinkBox.textContent = '💭 Gemma 4 is thinking...';
+  answerBox.textContent = '';
+  cfgBox.textContent = '';
+
+  let thinkText = '';
+  let answerText = '';
+  let inThinking = false;
+
+  const es = new EventSource('/api/ai/analyze');
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.done) {
+      es.close();
+      btn.disabled = false;
+      btn.innerHTML = 'Analyze &amp; Remediate';
+      // Extract config blocks
+      const cfgMatch = answerText.match(/```(?:kamailio|cfg|conf)?\n([\s\S]*?)```/);
+      if (cfgMatch) cfgBox.textContent = cfgMatch[1];
+      showToast('AI analysis complete');
+      return;
+    }
+    const token = data.token || '';
+    const type = data.type || 'answer';
+    if (type === 'thinking') {
+      thinkText += token;
+      thinkBox.textContent = thinkText;
+      thinkBox.scrollTop = thinkBox.scrollHeight;
+    } else {
+      answerText += token;
+      answerBox.textContent = answerText;
+      answerBox.scrollTop = answerBox.scrollHeight;
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.innerHTML = 'Analyze &amp; Remediate';
+  };
+}
+
+// ── Logs rendering ─────────────────────────────────────────────────────────
+function renderLogs() {
+  const logEl = document.getElementById('log-viewer');
+  const sipEl = document.getElementById('sip-trace-box');
+  const cfgEl = document.getElementById('cfg-issue-box');
+  const countEl = document.getElementById('log-count');
+
+  if (STATE.logs.length === 0) {
+    logEl.textContent = 'No logs yet. Inject a fault scenario to see Kamailio logs.';
+    countEl.textContent = '0 lines';
+    return;
+  }
+
+  countEl.textContent = `${STATE.logs.length} lines`;
+  logEl.innerHTML = STATE.logs.map(line => {
+    const cls = line.includes('CRITICAL') || line.includes('CRITICAL')
+      ? 'log-critical'
+      : line.includes('ERROR') ? 'log-error'
+      : line.includes('WARNING') || line.includes('WARN') ? 'log-warn'
+      : line.includes('INFO') ? 'log-info'
+      : '';
+    return `<span class="${cls}">${escapeHtml(line)}</span>`;
+  }).join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
+
+  sipEl.textContent = STATE.sipTrace || 'No SIP trace available';
+  cfgEl.textContent = STATE.cfgIssue || '# No configuration issue identified';
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type='info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toast.style.background = type === 'error' ? '#dc2626' : '#1e2330';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+function exportReport() {
+  if (!STATE.auditReport) { showToast('No report to export', 'error'); return; }
+  const data = JSON.stringify({ audit: STATE.auditReport, logs: STATE.logs }, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `compliance_report_${STATE.incidentId || 'demo'}.json`;
+  a.click();
+}
+
+async function resetAll() {
+  await fetch('/api/reset', { method: 'POST' });
+  STATE.auditReport = null;
+  STATE.phase = 'idle';
+  STATE.incidentId = null;
+  STATE.logs = [];
+  STATE.sipTrace = '';
+  STATE.cfgIssue = '';
+  STATE.selectedFrameworks = new Set();
+  STATE.selectedScenario = null;
+  document.querySelectorAll('.fw-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.scenario-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('verdict-banner').style.display = 'none';
+  document.getElementById('kpi-score').textContent = '—';
+  document.getElementById('kpi-open').textContent = '0';
+  document.getElementById('kpi-critical').textContent = '0';
+  document.getElementById('score-bars').innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Run an audit to see scores</div>';
+  document.getElementById('findings-badge').textContent = '0';
+  document.getElementById('log-viewer').textContent = 'No logs yet.';
+  document.getElementById('findings-container').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">Run an audit to see compliance findings</div>';
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  showToast('Reset complete');
+}
+</script>
+</body>
+</html>
