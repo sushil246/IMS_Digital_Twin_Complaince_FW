@@ -1,0 +1,82 @@
+sequenceDiagram
+    autonumber
+    participant NOC as NOC Engineer<br/>(CLI / Web UI)
+    participant MAIN as main.py<br/>Entry Point
+    participant PIPE as ComplianceAuditPipeline
+    participant SIM as KamailioSimulator<br/>(Fault Injector)
+    participant TWIN as NetworkStateTwin<br/>(IMS Digital Twin)
+    participant EVAL as ComplianceEvaluator
+    participant FW as Framework Controls<br/>(UK TSA / EU AI Act /<br/>ISO 42001 / NIST / MIT / OECD)
+    participant GEMMA as GemmaComplianceAdvisor<br/>(Gemma 4:e4b via Google ADK)
+    participant OLLAMA as Ollama Server<br/>(localhost:11434)
+    participant OUT as Output<br/>(Files / Web UI)
+
+    Note over NOC,OUT: Phase 1 — Framework & Scenario Selection
+
+    NOC->>MAIN: Select frameworks (e.g. uk_tsa + eu_ai_act)<br/>Select scenario (e.g. pii_sip_header_leak)
+    MAIN->>PIPE: run(framework_keys, scenario_key)
+
+    Note over PIPE,SIM: Phase 2 — Compliance Fault Injection
+
+    PIPE->>SIM: inject_compliance_fault(scenario_key)
+    SIM->>TWIN: mutate twin state (add alarms, set fault)
+    TWIN-->>SIM: updated NetworkStateTwin
+    SIM-->>PIPE: (logs[], sip_trace, kamailio_cfg_issue)
+
+    Note right of SIM: Generates realistic Kamailio<br/>log lines and SIP traces<br/>for the compliance violation
+
+    Note over PIPE,FW: Phase 3 — Compliance Evaluation
+
+    PIPE->>EVAL: evaluate(twin, logs, framework_keys)
+    loop For each framework
+        EVAL->>FW: run control checks (twin, logs)
+        FW-->>EVAL: ControlStatus (COMPLIANT / NON_COMPLIANT / PARTIAL)
+    end
+    EVAL-->>PIPE: AuditReport (findings[], framework_scores{})
+
+    Note right of EVAL: Each control check inspects:<br/>• Twin state (KPIs, config)<br/>• Log patterns (regex)<br/>• Fault scenario metadata
+
+    Note over PIPE,OLLAMA: Phase 4 — AI Reasoning & Remediation (Thinking Mode)
+
+    PIPE->>GEMMA: remediate_finding_async(finding, logs, sip_trace, cfg_issue)
+    GEMMA->>GEMMA: Build system prompt with <|think|> prefix
+    GEMMA->>OLLAMA: POST /api/generate {model: gemma4:e4b,<br/>prompt: <|think|> + context, stream: true}
+
+    loop Streaming tokens
+        OLLAMA-->>GEMMA: token chunks
+        GEMMA->>GEMMA: Detect <|channel>thought...  <channel|> blocks
+        GEMMA->>GEMMA: Strip thinking block from final answer
+    end
+
+    OLLAMA-->>GEMMA: Complete response with thinking + answer
+    GEMMA->>GEMMA: _parse_thinking_response(raw)<br/>Extract: thinking_block, final_answer
+    GEMMA->>GEMMA: _extract_kamailio_cfg(final_answer)<br/>_extract_remediation_steps(final_answer)
+    GEMMA-->>PIPE: GemmaResponse(thinking_block, kamailio_config, steps[])
+
+    Note right of GEMMA: Gemma 4 thinking block:<br/><|channel>thought\n...<channel|><br/>→ stripped before returning<br/>Clean Kamailio cfg returned
+
+    Note over PIPE,OUT: Phase 5 — Auto-Remediation & Verification
+
+    PIPE->>OUT: Save kamailio_{INC}_{control_id}.cfg
+    PIPE->>TWIN: update_twin_config (simulate patch applied)
+    PIPE->>EVAL: Re-evaluate patched controls
+    EVAL-->>PIPE: Updated findings (NON_COMPLIANT → COMPLIANT)
+
+    Note over PIPE,OUT: Phase 6 — Executive Summary & Report
+
+    PIPE->>GEMMA: generate_audit_summary_async(audit_report, logs)
+    GEMMA->>OLLAMA: Audit summary prompt (thinking mode)
+    OLLAMA-->>GEMMA: Executive summary response
+    GEMMA-->>PIPE: GemmaResponse (executive summary)
+
+    PIPE->>OUT: Save compliance_report_{INC}.json
+    PIPE-->>NOC: Print compliance verdict<br/>(COMPLIANT / PARTIALLY COMPLIANT / NON-COMPLIANT)
+
+    Note over NOC,OUT: Phase 7 — Web Dashboard (optional)
+
+    NOC->>OUT: Open http://localhost:8001
+    OUT->>NOC: Interactive compliance dashboard<br/>(Framework selector, findings table,<br/>AI streaming remediation, charts)
+    NOC->>OUT: Click "🤖 Fix" on finding
+    OUT->>OLLAMA: Stream Kamailio fix via SSE
+    OLLAMA-->>OUT: Streamed tokens
+    OUT->>NOC: Real-time Kamailio config display

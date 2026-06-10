@@ -1,0 +1,30 @@
+{
+  "session_id": "CERT-729066FB",
+  "timestamp": "2026-06-10T06:31:31.534098+00:00",
+  "scenario_key": "pii_sip_header_leak",
+  "selected_frameworks": [
+    "uk_tsa",
+    "oecd_ai"
+  ],
+  "agent_results": [
+    {
+      "framework_key": "uk_tsa",
+      "agent_name": "uk_tsa_agent",
+      "duration_sec": 42.5,
+      "response_length": 63,
+      "response_excerpt": "## \ud83d\udee1\ufe0f UK TSA Compliance Audit Report\n\n**Agent:** uk\\_tsa\\_agent",
+      "control_ids": []
+    },
+    {
+      "framework_key": "oecd_ai",
+      "agent_name": "oecd_ai_agent",
+      "duration_sec": 25.5,
+      "response_length": 748,
+      "response_excerpt": "***oecd_ai_agent Activated***\n**System Audit Commencement:** Analyzing network logs and configuration against OECD AI Principles for Telecom Routing System.\n**Focus Area:** Privacy (OECD-PRIV-001) - PII Leakage via SIP Header Logging.\n\n---\n\n### \ud83d\udd0d Initial Diagnosis & Evidence Gathering\n\nThe audit has successfully identified a critical vulnerability regarding the logging of Personally Identifiable Information (PII).\n\n**Tool Call Summary:**\n*   `get_sbc_logs()`: Confirmed raw logs containing full M",
+      "control_ids": [
+        "OECD-PRIV-001"
+      ]
+    }
+  ],
+  "combined_summary": "================================================================\n  MULTI-AGENT CERTIFICATION SUMMARY\n================================================================\n\n  \ud83c\uddec\ud83c\udde7 UK TSA\n  Duration: 42.5s | Controls addressed: none identified\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  ## \ud83d\udee1\ufe0f UK TSA Compliance Audit Report\n  \n  **Agent:** uk\\_tsa\\_agent\n\n  \ud83c\udf0d OECD AI\n  Duration: 25.5s | Controls addressed: OECD-PRIV-001\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  ***oecd_ai_agent Activated***\n  **System Audit Commencement:** Analyzing network logs and configuration against OECD AI Principles for Telecom Routing System.\n  **Focus Area:** Privacy (OECD-PRIV-001) - PII Leakage via SIP Header Logging.\n  \n  ---\n  \n  ### \ud83d\udd0d Initial Diagnosis & Evidence Gathering\n  \n  The audit has successfully identified a critical vulnerability regarding the logging of Personally Identifiable I"
+}

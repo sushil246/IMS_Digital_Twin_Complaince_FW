@@ -1,0 +1,30 @@
+{
+  "session_id": "CERT-7E4D82F2",
+  "timestamp": "2026-06-09T21:36:21.313413+00:00",
+  "scenario_key": "pii_sip_header_leak",
+  "selected_frameworks": [
+    "uk_tsa",
+    "oecd_ai"
+  ],
+  "agent_results": [
+    {
+      "framework_key": "uk_tsa",
+      "agent_name": "uk_tsa_agent",
+      "duration_sec": 78.4,
+      "response_length": 0,
+      "response_excerpt": "",
+      "control_ids": []
+    },
+    {
+      "framework_key": "oecd_ai",
+      "agent_name": "oecd_ai_agent",
+      "duration_sec": 61.3,
+      "response_length": 1527,
+      "response_excerpt": "***oecd_ai_agent activating***\n\n**Internal Audit Report Generation:** OECD AI Principles Certification Assessment\n**Target Vulnerability:** SIP PII Header Leak (Unmasked MSISDNs)\n**Non-Compliant Control Focus:** OECD-PRIV-001\n\n## \ud83d\udee1\ufe0f Certification Audit Summary: Privacy by Design in Call Routing\n\nBased on the provided logs, particularly the log lines referencing `xlog emitting 847 PII-bearing log lines` and the clear examples of unmasked MSISDNs (e.g., `<sip:+447713593075@ims.lab>`), a significan",
+      "control_ids": [
+        "OECD-PRIV-001"
+      ]
+    }
+  ],
+  "combined_summary": "================================================================\n  MULTI-AGENT CERTIFICATION SUMMARY\n================================================================\n\n  \ud83c\uddec\ud83c\udde7 UK TSA\n  Duration: 78.4s | Controls addressed: none identified\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  \n\n  \ud83c\udf0d OECD AI\n  Duration: 61.3s | Controls addressed: OECD-PRIV-001\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  ***oecd_ai_agent activating***\n  \n  **Internal Audit Report Generation:** OECD AI Principles Certification Assessment\n  **Target Vulnerability:** SIP PII Header Leak (Unmasked MSISDNs)\n  **Non-Compliant Control Focus:** OECD-PRIV-001\n  \n  ## \ud83d\udee1\ufe0f Certification Audit Summary: Privacy by Design in Call Routing\n  \n  Based on the provided logs, particularly the log lines referencing `xlog emitting 847 PII-bearing log l"
+}
